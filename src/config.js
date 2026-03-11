@@ -1,5 +1,10 @@
 require('dotenv').config();
 
+if (!process.env.DISCORD_TOKEN) {
+  console.error('Missing DISCORD_TOKEN. Copy .env.example to .env and fill in your token.');
+  process.exit(1);
+}
+
 module.exports = {
   token: process.env.DISCORD_TOKEN,
   clientId: process.env.DISCORD_CLIENT_ID,

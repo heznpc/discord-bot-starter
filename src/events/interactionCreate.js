@@ -12,11 +12,15 @@ module.exports = {
       await command.execute(interaction);
     } catch (error) {
       console.error(`Error executing ${interaction.commandName}:`, error);
-      const reply = { content: 'Something went wrong.', ephemeral: true };
-      if (interaction.replied || interaction.deferred) {
-        await interaction.followUp(reply);
-      } else {
-        await interaction.reply(reply);
+      try {
+        const reply = { content: 'Something went wrong.', ephemeral: true };
+        if (interaction.replied || interaction.deferred) {
+          await interaction.followUp(reply);
+        } else {
+          await interaction.reply(reply);
+        }
+      } catch (_) {
+        // interaction token expired or already handled
       }
     }
   },
