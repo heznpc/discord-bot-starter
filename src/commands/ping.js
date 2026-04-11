@@ -6,10 +6,11 @@ module.exports = {
     .setDescription('Check bot latency'),
 
   async execute(interaction) {
-    const sent = await interaction.reply({
+    const response = await interaction.reply({
       content: 'Pinging...',
-      fetchReply: true,
+      withResponse: true,
     });
+    const sent = response.resource.message;
     const latency = sent.createdTimestamp - interaction.createdTimestamp;
     await interaction.editReply(
       `Pong! Latency: ${latency}ms | API: ${interaction.client.ws.ping}ms`
