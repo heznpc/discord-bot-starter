@@ -52,7 +52,8 @@ npm run dev
 │   ├── config.js                 # 환경변수 설정 로더
 │   ├── commands/                 # 슬래시 커맨드 (자동 로드)
 │   │   ├── ping.js               # /ping — 지연시간 확인
-│   │   └── help.js               # /help — 커맨드 목록
+│   │   ├── help.js               # /help — 커맨드 목록
+│   │   └── search.js             # /search — 자동완성 예제
 │   └── events/                   # 이벤트 핸들러 (자동 로드)
 │       ├── ready.js              # 봇 준비 완료
 │       └── interactionCreate.js  # 커맨드 라우터
@@ -84,7 +85,7 @@ npm run dev
 - **Docker** — 프로덕션 Dockerfile + 핫 리로드 개발용 compose
 - **버전 관리** — `npm run version:patch/minor/major`로 `package.json` 버전 업
 - **개발 모드** — `npm run dev`로 `node --watch` 라이브 리로드
-- **스타터 코드** — `/ping` + `/help` 커맨드, 모듈형 이벤트 핸들러
+- **스타터 코드** — `/ping`, `/help`, `/search` (autocomplete 예제) 커맨드, 모듈형 이벤트 핸들러
 - **배포 가이드** — Discord, Railway, Fly.io 설정 단계별 문서
 - **템플릿 셋업** — 첫 사용 시 설정 체크리스트 이슈 자동 생성
 
@@ -189,6 +190,23 @@ module.exports = {
 그리고 등록: `npm run deploy-commands`
 
 커맨드는 자동 로드됩니다 — 다른 파일을 수정할 필요 없습니다.
+
+### 자동완성 (Autocomplete)
+
+자동완성 패턴은 `src/commands/search.js`를 참고하세요. 옵션에 `.setAutocomplete(true)`를 붙이고, `execute`와 함께 `autocomplete(interaction)` 함수를 export하면 됩니다:
+
+```js
+async autocomplete(interaction) {
+  const focused = interaction.options.getFocused().toLowerCase();
+  const matches = CHOICES
+    .filter((c) => c.toLowerCase().includes(focused))
+    .slice(0, 25) // Discord은 응답을 최대 25개로 제한
+    .map((c) => ({ name: c, value: c }));
+  await interaction.respond(matches);
+}
+```
+
+`src/events/interactionCreate.js`의 디스패처가 `isAutocomplete()` 인터랙션을 자동으로 이 핸들러로 라우팅합니다.
 
 ## Sapphire / Akairo 대신 이걸 쓰는 이유
 
