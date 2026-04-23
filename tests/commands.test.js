@@ -1,27 +1,102 @@
 const fs = require('fs');
 const path = require('path');
+const { SlashCommandBuilder } = require('discord.js');
 
-describe('Command files', () => {
-  const commandsPath = path.join(__dirname, '..', 'src', 'commands');
-  const commandFiles = fs
-    .readdirSync(commandsPath)
-    .filter((file) => file !== 'index.js' && file.endsWith('.js'));
+const commandsPath = path.join(__dirname, '..', 'src', 'commands');
+const commandFiles = fs
+  .readdirSync(commandsPath)
+  .filter((file) => file !== 'index.js' && file.endsWith('.js'));
 
+describe('Command modules', () => {
   test('at least one command exists', () => {
     expect(commandFiles.length).toBeGreaterThan(0);
   });
 
-  test.each(commandFiles)('%s exports data and execute', (file) => {
+  test.each(commandFiles)('%s exports a valid Discord.js command', (file) => {
     const command = require(path.join(commandsPath, file));
+
+    // Structural contract
     expect(command).toHaveProperty('data');
     expect(command).toHaveProperty('execute');
     expect(typeof command.execute).toBe('function');
-    expect(command.data.name).toBeTruthy();
-    expect(command.data.description).toBeTruthy();
+
+    // Must be a real SlashCommandBuilder — catches hand-rolled objects that
+    // won't serialize cleanly for Discord's REST API.
+    expect(command.data).toBeInstanceOf(SlashCommandBuilder);
+
+    // .toJSON() is what `deploy-commands.js` sends to Discord; if it throws,
+    // registration will fail in prod. Run it to catch schema errors early.
+    const json = command.data.toJSON();
+    expect(json.name).toMatch(/^[a-z0-9_-]{1,32}$/);
+    expect(json.description).toBeTruthy();
+    expect(json.description.length).toBeLessThanOrEqual(100);
   });
 });
 
-describe('Event files', () => {
+describe('/ping command', () => {
+  const ping = require(path.join(commandsPath, 'ping.js'));
+
+  test('replies with latency and edits with pong', async () => {
+    const sentMessage = { createdTimestamp: 1_000_050 };
+    const interaction = {
+      createdTimestamp: 1_000_000,
+      client: { ws: { ping: 42 } },
+      reply: jest.fn().mockResolvedValue({ resource: { message: sentMessage } }),
+      editReply: jest.fn().mockResolvedValue(undefined),
+    };
+
+    await ping.execute(interaction);
+
+    expect(interaction.reply).toHaveBeenCalledWith({
+      content: 'Pinging...',
+      withResponse: true,
+    });
+    expect(interaction.editReply).toHaveBeenCalledTimes(1);
+    const reply = interaction.editReply.mock.calls[0][0];
+    expect(reply).toContain('Pong!');
+    expect(reply).toContain('50ms');
+    expect(reply).toContain('API: 42ms');
+  });
+});
+
+describe('/search command', () => {
+  const search = require(path.join(commandsPath, 'search.js'));
+
+  test('execute replies with the selected query', async () => {
+    const interaction = {
+      options: { getString: jest.fn().mockReturnValue('docker') },
+      reply: jest.fn().mockResolvedValue(undefined),
+    };
+
+    await search.execute(interaction);
+
+    expect(interaction.options.getString).toHaveBeenCalledWith('query');
+    expect(interaction.reply).toHaveBeenCalledWith('You picked: `docker`');
+  });
+
+  test('autocomplete returns filtered, capped suggestions', async () => {
+    const interaction = {
+      options: { getFocused: jest.fn().mockReturnValue('re') },
+      respond: jest.fn().mockResolvedValue(undefined),
+    };
+
+    await search.autocomplete(interaction);
+
+    expect(interaction.respond).toHaveBeenCalledTimes(1);
+    const choices = interaction.respond.mock.calls[0][0];
+    expect(Array.isArray(choices)).toBe(true);
+    expect(choices.length).toBeLessThanOrEqual(25);
+    // "re" matches "elasticsearch" and "redis" in the built-in list.
+    const values = choices.map((c) => c.value);
+    expect(values).toContain('redis');
+    for (const choice of choices) {
+      expect(choice).toHaveProperty('name');
+      expect(choice).toHaveProperty('value');
+    }
+  });
+});
+
+describe('Event modules', () => {
   const eventsPath = path.join(__dirname, '..', 'src', 'events');
   const eventFiles = fs
     .readdirSync(eventsPath)
@@ -36,5 +111,7 @@ describe('Event files', () => {
     expect(event).toHaveProperty('name');
     expect(event).toHaveProperty('execute');
     expect(typeof event.execute).toBe('function');
+    expect(typeof event.name).toBe('string');
+    expect(event.name.length).toBeGreaterThan(0);
   });
 });

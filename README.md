@@ -83,6 +83,7 @@ npm run dev
 - **CI Pipeline** — Security audit, lint, test, Docker build verification on every push
 - **CD Pipeline** — One-click deploy to Railway or Fly.io + auto GitHub Release
 - **Docker** — Production Dockerfile + dev compose with hot reload
+- **Health endpoint** — Built-in `GET /health` + Docker `HEALTHCHECK` so Fly.io / Railway can detect a crashed bot
 - **Version management** — `npm run version:patch/minor/major` to bump `package.json`
 - **Dev mode** — `npm run dev` for live reload with `node --watch`
 - **Starter code** — `/ping`, `/help`, and `/search` (autocomplete pattern) commands, modular event handlers
@@ -244,6 +245,41 @@ This template uses JavaScript for simplicity. To add TypeScript:
 4. Rename `.js` files to `.ts`
 
 TypeScript is opt-in, not forced. For many bots (utility commands, simple automation), JavaScript is all you need.
+
+## Health Check
+
+The bot exposes a tiny HTTP health server (`src/lib/health.js`) on `HEALTH_PORT` (default `3000`). It's used by the Docker `HEALTHCHECK` and by Fly.io / Railway to detect a crashed or disconnected bot process.
+
+| Path | Status | Body |
+|------|--------|------|
+| `GET /health` (client ready) | `200` | `{ "status": "ok", "uptime": <seconds>, "guilds": <count> }` |
+| `GET /health` (starting / disconnected) | `503` | `{ "status": "starting", "uptime": <seconds>, "guilds": 0 }` |
+
+**Configuration**
+
+```bash
+# .env
+HEALTH_PORT=3000   # change if 3000 is already taken on your host
+```
+
+**Fly.io** — add an HTTP service check to `fly.toml`:
+
+```toml
+[[services]]
+  internal_port = 3000
+  protocol = "tcp"
+
+  [[services.http_checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "30s"
+    method = "get"
+    path = "/health"
+```
+
+**Railway** — set the service's health-check path to `/health` and port to `3000` under **Settings → Deploy**.
+
+**Docker** — `docker ps` will show `(healthy)` / `(unhealthy)` status automatically; the `HEALTHCHECK` runs `wget --spider http://localhost:${HEALTH_PORT}/health` every 30s.
 
 ## Contributing
 

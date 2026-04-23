@@ -1,6 +1,7 @@
-const { Client, GatewayIntentBits, Collection } = require('discord.js');
+const { Client, Events, GatewayIntentBits, Collection } = require('discord.js');
 const { loadCommands } = require('./commands');
 const { loadEvents } = require('./events');
+const { createHealthServer } = require('./lib/health');
 const config = require('./config');
 const log = require('./lib/logger');
 
@@ -13,14 +14,36 @@ client.commands = new Collection();
 loadCommands(client);
 loadEvents(client);
 
-const shutdown = () => {
-  log.info('lifecycle', 'Shutting down...');
-  client.destroy();
+const healthServer = createHealthServer(client);
+
+// Start the health server once the bot is ready so orchestrators (Fly.io,
+// Railway, Docker HEALTHCHECK) only get a 200 after the gateway connects.
+client.once(Events.ClientReady, () => {
+  healthServer.start().catch((err) => {
+    log.error('health', 'Failed to start health server', { error: err.message });
+  });
+});
+
+let shuttingDown = false;
+const shutdown = async (signal) => {
+  if (shuttingDown) return;
+  shuttingDown = true;
+  log.info('lifecycle', 'Shutting down...', { signal });
+  try {
+    await healthServer.stop();
+  } catch (err) {
+    log.error('lifecycle', 'Error closing health server', { error: err.message });
+  }
+  try {
+    await client.destroy();
+  } catch (err) {
+    log.error('lifecycle', 'Error destroying client', { error: err.message });
+  }
   process.exit(0);
 };
 
-process.on('SIGINT', shutdown);
-process.on('SIGTERM', shutdown);
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));
 
 client.login(config.token).catch((err) => {
   log.error('lifecycle', 'Failed to log in', { error: err.message });
