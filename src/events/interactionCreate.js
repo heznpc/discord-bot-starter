@@ -9,6 +9,18 @@ setInterval(() => limiter.cleanup(), 120_000).unref();
 module.exports = {
   name: Events.InteractionCreate,
   async execute(interaction) {
+    // Autocomplete runs before the command is submitted — dispatch separately.
+    if (interaction.isAutocomplete()) {
+      const command = interaction.client.commands.get(interaction.commandName);
+      if (!command || typeof command.autocomplete !== 'function') return;
+      try {
+        await command.autocomplete(interaction);
+      } catch (error) {
+        logger.error('interactionCreate', `Autocomplete failed for ${interaction.commandName}`, { error: error.message });
+      }
+      return;
+    }
+
     if (!interaction.isChatInputCommand()) return;
 
     const command = interaction.client.commands.get(interaction.commandName);

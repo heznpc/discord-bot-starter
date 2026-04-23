@@ -52,7 +52,8 @@ npm run dev
 │   ├── config.js                 # Environment config loader
 │   ├── commands/                 # Slash commands (auto-loaded)
 │   │   ├── ping.js               # /ping — check latency
-│   │   └── help.js               # /help — list commands
+│   │   ├── help.js               # /help — list commands
+│   │   └── search.js             # /search — autocomplete example
 │   └── events/                   # Event handlers (auto-loaded)
 │       ├── ready.js              # Bot ready
 │       └── interactionCreate.js  # Command router
@@ -84,7 +85,7 @@ npm run dev
 - **Docker** — Production Dockerfile + dev compose with hot reload
 - **Version management** — `npm run version:patch/minor/major` to bump `package.json`
 - **Dev mode** — `npm run dev` for live reload with `node --watch`
-- **Starter code** — `/ping` + `/help` commands, modular event handlers
+- **Starter code** — `/ping`, `/help`, and `/search` (autocomplete pattern) commands, modular event handlers
 - **Deploy guides** — Step-by-step docs for Discord, Railway, and Fly.io setup
 - **Template setup** — Auto-creates setup checklist issue on first use
 
@@ -189,6 +190,23 @@ module.exports = {
 Then register: `npm run deploy-commands`
 
 Commands are auto-loaded — no need to edit any other file.
+
+### Autocomplete
+
+See `src/commands/search.js` for the autocomplete pattern. Add `.setAutocomplete(true)` on an option and export an `autocomplete(interaction)` function alongside `execute`:
+
+```js
+async autocomplete(interaction) {
+  const focused = interaction.options.getFocused().toLowerCase();
+  const matches = CHOICES
+    .filter((c) => c.toLowerCase().includes(focused))
+    .slice(0, 25) // Discord caps responses at 25 choices
+    .map((c) => ({ name: c, value: c }));
+  await interaction.respond(matches);
+}
+```
+
+The dispatcher in `src/events/interactionCreate.js` routes `isAutocomplete()` interactions to this handler automatically.
 
 ## Why This Over Sapphire / Akairo?
 
