@@ -43,7 +43,7 @@ jobs:
           if [ "$HAS_RAILWAY_TOKEN" != "true" ]; then MISSING="$MISSING RAILWAY_TOKEN"; fi
           if [ "$HAS_SERVICE_ID" != "true" ]; then MISSING="$MISSING RAILWAY_SERVICE_ID"; fi
           if [ -n "$MISSING" ]; then
-            echo "::error::Missing required secrets:$MISSING — See docs/RAILWAY_DEPLOY.md"
+            echo "::error::Missing required secrets:$MISSING — See docs/DEPLOY_GUIDE.md"
             exit 1
           fi
 
