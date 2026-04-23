@@ -25,24 +25,27 @@ Build your bot. Push to deploy.
 
 ## Quick Start
 
+**Via [create-starter](https://github.com/starter-series/create-starter)** (recommended):
+
 ```bash
-# 1. Click "Use this template" on GitHub (or clone)
-git clone https://github.com/starter-series/discord-bot-starter.git my-bot
-cd my-bot
-
-# 2. Install dependencies
-npm install
-
-# 3. Set up environment (see docs/DISCORD_SETUP.md for detailed guide)
-cp .env.example .env
-# Edit .env → add DISCORD_TOKEN and DISCORD_CLIENT_ID
-
-# 4. Register slash commands
+npx @starter-series/create my-discord-bot --template discord-bot
+cd my-discord-bot && npm install
+cp .env.example .env  # fill in DISCORD_TOKEN + DISCORD_CLIENT_ID
 npm run deploy-commands
-
-# 5. Start the bot
 npm run dev
 ```
+
+**Or clone directly:**
+
+```bash
+git clone https://github.com/starter-series/discord-bot-starter my-discord-bot
+cd my-discord-bot && npm install
+cp .env.example .env
+npm run deploy-commands
+npm run dev
+```
+
+See [docs/DISCORD_SETUP.md](docs/DISCORD_SETUP.md) for the Discord Developer Portal walkthrough.
 
 ## What's Included
 
