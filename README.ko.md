@@ -83,6 +83,7 @@ npm run dev
 - **CI 파이프라인** — 보안 감사, 린트, 테스트, Docker 빌드 검증
 - **CD 파이프라인** — 원클릭 Railway 또는 Fly.io 배포 + GitHub Release 자동 생성
 - **Docker** — 프로덕션 Dockerfile + 핫 리로드 개발용 compose
+- **헬스 체크** — `GET /health` + Docker `HEALTHCHECK` 내장 — Fly.io / Railway가 죽은 봇을 감지
 - **버전 관리** — `npm run version:patch/minor/major`로 `package.json` 버전 업
 - **개발 모드** — `npm run dev`로 `node --watch` 라이브 리로드
 - **스타터 코드** — `/ping`, `/help`, `/search` (autocomplete 예제) 커맨드, 모듈형 이벤트 핸들러
@@ -244,6 +245,41 @@ async autocomplete(interaction) {
 4. `.js` 파일을 `.ts`로 변경
 
 TypeScript는 강제가 아니라 선택입니다. 많은 봇 (유틸리티 커맨드, 간단한 자동화)에는 JavaScript만으로 충분합니다.
+
+## 헬스 체크
+
+봇은 `HEALTH_PORT` (기본값 `3000`)에서 작은 HTTP 헬스 서버 (`src/lib/health.js`)를 엽니다. Docker `HEALTHCHECK`와 Fly.io / Railway가 봇 프로세스 크래시/연결 끊김을 감지하는 용도입니다.
+
+| 경로 | 상태 | 응답 |
+|------|------|------|
+| `GET /health` (ready) | `200` | `{ "status": "ok", "uptime": <초>, "guilds": <수> }` |
+| `GET /health` (시작 중 / 연결 끊김) | `503` | `{ "status": "starting", "uptime": <초>, "guilds": 0 }` |
+
+**설정**
+
+```bash
+# .env
+HEALTH_PORT=3000   # 3000이 이미 사용 중이면 변경
+```
+
+**Fly.io** — `fly.toml`에 HTTP 서비스 체크 추가:
+
+```toml
+[[services]]
+  internal_port = 3000
+  protocol = "tcp"
+
+  [[services.http_checks]]
+    interval = "30s"
+    timeout = "5s"
+    grace_period = "30s"
+    method = "get"
+    path = "/health"
+```
+
+**Railway** — **Settings → Deploy**에서 헬스 체크 경로를 `/health`, 포트를 `3000`으로 설정.
+
+**Docker** — `docker ps`가 자동으로 `(healthy)` / `(unhealthy)` 상태를 표시합니다. `HEALTHCHECK`는 30초마다 `wget --spider http://localhost:${HEALTH_PORT}/health`를 실행합니다.
 
 ## 기여
 

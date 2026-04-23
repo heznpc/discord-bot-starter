@@ -1,0 +1,65 @@
+const http = require('http');
+const log = require('./logger');
+
+/**
+ * Create a minimal health-check HTTP server.
+ *
+ * GET /health:
+ *   - 200 OK + JSON { status, uptime, guilds } when the Discord client is ready.
+ *   - 503 Service Unavailable when the client is not yet ready or disconnected.
+ *
+ * Any other path returns 404.
+ *
+ * The server uses Node's built-in `http` module — no extra dependencies.
+ *
+ * @param {import('discord.js').Client} client
+ * @param {{ port?: number }} [options]
+ * @returns {import('http').Server}
+ */
+function createHealthServer(client, options = {}) {
+  const port = options.port ?? (Number(process.env.HEALTH_PORT) || 3000);
+
+  const server = http.createServer((req, res) => {
+    if (req.method !== 'GET' || req.url !== '/health') {
+      res.writeHead(404, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ error: 'not_found' }));
+      return;
+    }
+
+    const ready = client.isReady?.() ?? false;
+    const status = ready ? 200 : 503;
+    const body = {
+      status: ready ? 'ok' : 'starting',
+      uptime: process.uptime(),
+      guilds: ready ? client.guilds.cache.size : 0,
+    };
+
+    res.writeHead(status, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify(body));
+  });
+
+  server.on('error', (err) => {
+    log.error('health', 'Health server error', { error: err.message });
+  });
+
+  function start() {
+    return new Promise((resolve) => {
+      server.listen(port, () => {
+        log.info('health', `Health server listening on :${port}`);
+        resolve(server);
+      });
+    });
+  }
+
+  function stop() {
+    return new Promise((resolve) => {
+      server.close(() => resolve());
+    });
+  }
+
+  server.start = start;
+  server.stop = stop;
+  return server;
+}
+
+module.exports = { createHealthServer };
