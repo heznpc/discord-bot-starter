@@ -25,24 +25,27 @@
 
 ## 빠른 시작
 
+**[create-starter](https://github.com/starter-series/create-starter) 사용** (권장):
+
 ```bash
-# 1. GitHub에서 "Use this template" 클릭 (또는 clone)
-git clone https://github.com/starter-series/discord-bot-starter.git my-bot
-cd my-bot
-
-# 2. 의존성 설치
-npm install
-
-# 3. 환경 설정 (자세한 가이드: docs/DISCORD_SETUP.md)
-cp .env.example .env
-# .env 편집 → DISCORD_TOKEN과 DISCORD_CLIENT_ID 입력
-
-# 4. 슬래시 커맨드 등록
+npx @starter-series/create my-discord-bot --template discord-bot
+cd my-discord-bot && npm install
+cp .env.example .env  # DISCORD_TOKEN + DISCORD_CLIENT_ID 입력
 npm run deploy-commands
-
-# 5. 봇 시작
 npm run dev
 ```
+
+**또는 직접 clone:**
+
+```bash
+git clone https://github.com/starter-series/discord-bot-starter my-discord-bot
+cd my-discord-bot && npm install
+cp .env.example .env
+npm run deploy-commands
+npm run dev
+```
+
+Discord Developer Portal 설정은 [docs/DISCORD_SETUP.md](docs/DISCORD_SETUP.md) 참고.
 
 ## 포함된 구성
 
