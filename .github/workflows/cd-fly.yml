@@ -39,7 +39,7 @@ jobs:
           HAS_FLY_TOKEN: ${{ secrets.FLY_API_TOKEN != '' }}
         run: |
           if [ "$HAS_FLY_TOKEN" != "true" ]; then
-            echo "::error::Missing required secret: FLY_API_TOKEN — See docs/FLY_DEPLOY.md"
+            echo "::error::Missing required secret: FLY_API_TOKEN — See docs/DEPLOY_GUIDE.md"
             exit 1
           fi
 
