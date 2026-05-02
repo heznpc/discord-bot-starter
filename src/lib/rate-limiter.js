@@ -1,5 +1,14 @@
 /**
  * Simple per-user rate limiter for bot commands.
+ *
+ * **Topology caveat:** the store is in-memory. A multi-process deploy
+ * (e.g. discord.js sharding, multiple replicas behind the same gateway,
+ * a horizontally scaled Worker pool) will not share counts and a noisy
+ * user can spam by hitting different processes. For accurate limits in
+ * those topologies, swap `store` for an external Redis (or any KV with
+ * atomic increment + TTL) — the public API of this function is shaped
+ * to make that drop-in.
+ *
  * @param {number} maxHits - Maximum allowed invocations within the window.
  * @param {number} windowMs - Time window in milliseconds.
  */
