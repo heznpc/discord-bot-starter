@@ -18,9 +18,9 @@ jobs:
         run: |
           NAME=$(node -p "require('./package.json').name")
           if [ "$NAME" = "discord-bot-starter" ]; then
-            echo "is_template=true" >> $GITHUB_OUTPUT
+            echo "is_template=true" >> "$GITHUB_OUTPUT"
           else
-            echo "is_template=false" >> $GITHUB_OUTPUT
+            echo "is_template=false" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Create setup checklist
