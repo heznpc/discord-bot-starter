@@ -22,7 +22,15 @@ const TRANSIENT_API_CODES = new Set([
  */
 async function safeRespond(interaction, payload) {
   try {
-    if (interaction.replied || interaction.deferred) {
+    // After deferReply() the interaction is `deferred=true, replied=false`.
+    // The correct method to fill the deferred placeholder is editReply —
+    // calling followUp would create a *second* message and leave the
+    // "Bot is thinking…" placeholder dangling forever. After the first
+    // reply (or first followUp), `replied=true` and we use followUp.
+    if (interaction.deferred && !interaction.replied) {
+      return await interaction.editReply(payload);
+    }
+    if (interaction.replied) {
       return await interaction.followUp(payload);
     }
     return await interaction.reply(payload);
